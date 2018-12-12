@@ -1,314 +1,295 @@
-
-// Author: Sergio Castaño Arteaga
-// Email: sergio.castano.arteaga@gmail.com
-
-(function(){
-
-    var debug = false;
-
-    // ***************************************************************************
-    // Socket.io events
-    // ***************************************************************************
-    
-    var socket = io.connect(window.location.host);
-
-    // Connection established
-    socket.on('connected', function (data) {
-        console.log(data);
-
-        // Get users connected to mainroom
-        socket.emit('getUsersInRoom', {'room':'MainRoom'});
-
-        if (debug) {
-            // Subscription to rooms
-            socket.emit('subscribe', {'username':'sergio', 'rooms':['sampleroom']});
-
-            // Send sample message to room
-            socket.emit('newMessage', {'room':'sampleroom', 'msg':'Hellooooooo!'});
-
-            // Auto-disconnect after 10 minutes
-            setInterval(function() {
-                socket.emit('unsubscribe', {'rooms':['sampleroom']});
-                socket.disconnect();
-            }, 600000);
-        }
+class App {
+  constructor() {
+    this.logger = console;
+  }
+}
+class Chat extends App {
+  constructor() {
+    super();
+    this.debug = false;
+    this.mainRoom = 'MainRoom';
+    this.templates = {};
+    this.initialize();
+    this.logger.info('begin');
+  }
+  initialize() {
+    this.initEvent();
+    this.initAction();
+  }
+  initEvent() {
+    const action = socket => {
+      this.connected(socket);
+      this.disconnect(socket);
+      this.reconnect(socket);
+      this.subscriptionConfirmed(socket);
+      this.unsubscriptionConfirmed(socket);
+      this.userJoinsRoom(socket);
+      this.userLeavesRoom(socket);
+      this.newMessage(socket);
+      this.usersInRoom(socket);
+      this.userNicknameUpdated(socket);
+      this.debugging(socket);
+      return socket;
+    };
+    this.socket = action(io.connect(window.location.host));
+  }
+  initAction() {
+    this.onClick(this.select('#b_send_message'), event => {
+      event.preventDefault();
+      if (this.select('#message_text').value === '') return;
+      this.socket.emit('newMessage', { room: this.getCurrentRoom(), msg: this.getMessageText() });
     });
-
-    // Disconnected from server
-    socket.on('disconnect', function (data) {
-        var info = {'room':'MainRoom', 'username':'ServerBot', 'msg':'----- Lost connection to server -----'};
-        addMessage(info);
+    this.onClick(this.select('#b_join_room'), event => {
+      event.preventDefault();
+      const roomName = this.getRoomName();
+      if (!roomName) {
+        this.select('#room_name').classList.add('error');
+        return;
+      }
+      this.socket.emit('subscribe', { rooms: [roomName] });
     });
-    
-    // Reconnected to server
-    socket.on('reconnect', function (data) {
-        var info = {'room':'MainRoom', 'username':'ServerBot', 'msg':'----- Reconnected to server -----'};
-        addMessage(info);
+    this.onClick(this.select('#b_leave_room'), event => {
+      event.preventDefault();
+      const currentRoom = this.getCurrentRoom();
+      if (currentRoom === this.mainRoom) return;
+      this.socket.emit('unsubscribe', { rooms: [this.getCurrentRoom()] });
+      this.select('[data-href="#id-MainRoom"]').click();
     });
-
-    // Subscription to room confirmed
-    socket.on('subscriptionConfirmed', function(data) {
-        // Create room space in interface
-        if (!roomExists(data.room)) {
-            addRoomTab(data.room);
-            addRoom(data.room);
-        }
-
-        // Close modal if opened
-        $('#modal_joinroom').modal('hide');
+    this.select('#modal_joinroom').addEventListener('hidden.bs.modal', event => {
+      this.logger({ event });
+      event.preventDefault();
+      if (!this.select('#room_name').classList.contains('error')) return;
+      this.select('#room_name').classList.remove('error');
     });
-
-    // Unsubscription to room confirmed
-    socket.on('unsubscriptionConfirmed', function(data) {
-        // Remove room space in interface
-        if (roomExists(data.room)) {
-            removeRoomTab(data.room);
-            removeRoom(data.room);
-        }
+    this.onClick(this.select('#b_set_nickname'), event => {
+      event.preventDefault();
+      this.socket.emit('setNickname', { username: this.getNickname() });
+      this.hideModal(this.select('#modal_setnick'));
     });
-
-    // User joins room
-    socket.on('userJoinsRoom', function(data) {
-        console.log("userJoinsRoom: %s", JSON.stringify(data));
-        // Log join in conversation
-        addMessage(data);
-    
-        // Add user to connected users list
-        addUser(data);
+    this.onClick(this.select('#drop-down .link'), event => {
+      if (this.select('#drop-down').classList.contains('open')) {
+        this.select('#drop-down').classList.remove('open');
+      } else {
+        event.preventDefault();
+        this.select('#drop-down').classList.add('open');
+      }
     });
-
-    // User leaves room
-    socket.on('userLeavesRoom', function(data) {
-        console.log("userLeavesRoom: %s", JSON.stringify(data));
-        // Log leave in conversation
-        addMessage(data);
-
-        // Remove user from connected users list
-        removeUser(data);
+    this.onClick(this.select('#open_setnick'), () => {
+      this.select('#drop-down').classList.remove('open');
+      this.showModal(this.select('#modal_setnick'));
     });
-
-    // Message received
-    socket.on('newMessage', function (data) {
-        console.log("newMessage: %s", JSON.stringify(data));
-        addMessage(data);
-
-        // Scroll down room messages
-        var room_messages = '#room_messages_'+data.room;
-        $(room_messages).animate({
-            scrollTop: $(room_messages).prop('scrollHeight')
-        }, 300);
+    this.onClick(this.select('#open_joinroom'), () => {
+      this.select('#drop-down').classList.remove('open');
+      this.showModal(this.select('#modal_joinroom'));
     });
-
-    // Users in room received
-    socket.on('usersInRoom', function(data) {
-        console.log('usersInRoom: %s', JSON.stringify(data));
-        _.each(data.users, function(user) {
-            addUser(user);
-        });
+  }
+  debugging(socket) {
+    const action = () => this.debug = true;
+    socket.on('debugging', action);
+  }
+  connected(socket) {
+    const action = () => {
+      this.socket.emit('subscribe', { rooms: [this.mainRoom] });
+    };
+    socket.on('connected', action);
+  }
+  disconnect(socket) {
+    const action = () => this.addMessage({
+      room: this.mainRoom, username: 'ServerBot', msg: '----- Lost connection to server -----',
     });
-
-    // User nickname updated
-    socket.on('userNicknameUpdated', function(data) {
-        console.log("userNicknameUpdated: %s", JSON.stringify(data));
-        updateNickname(data);
-
-        msg = '----- ' + data.oldUsername + ' is now ' + data.newUsername + ' -----';
-        var info = {'room':data.room, 'username':'ServerBot', 'msg':msg};
-        addMessage(info);
+    socket.on('disconnect', action);
+  }
+  reconnect(socket) {
+    const action = () => this.addMessage({
+      room: this.mainRoom, username: 'ServerBot', msg: '----- Reconnected to server -----',
     });
-
-    // ***************************************************************************
-    // Templates and helpers
-    // ***************************************************************************
-    
-    var templates = {};
-    var getTemplate = function(path, callback) {
-        var source;
-        var template;
- 
-        // Check first if we've the template cached
-        if (_.has(templates, path)) {
-            if (callback) callback(templates[path]);
-        // If not we get and compile it
-        } else {
-            $.ajax({
-                url: path,
-                success: function(data) {
-                    source = data;
-                    template = Handlebars.compile(source);
-                    // Store compiled template in cache
-                    templates[path] = template;
-                    if (callback) callback(template);
-                }
-            });
-        }
+    socket.on('reconnect', action);
+  }
+  subscriptionConfirmed(socket) {
+    const action = data => {
+      if (!this.roomExists(data.room)) {
+        this.selectAll('.active').forEach(element => element.classList.remove('active'));
+        this.addRoomTab(data.room);
+        this.addRoom(data.room);
+      }
+      this.socket.emit('getUsersInRoom', { room: data.room });
+      this.hideModal(this.select('#modal_joinroom'));
+    };
+    socket.on('subscriptionConfirmed', action);
+  }
+  unsubscriptionConfirmed(socket) {
+    const action = data => {
+      if (!this.roomExists(data.room)) return;
+      this.removeRoomTab(data.room);
+      this.removeRoom(data.room);
+    };
+    socket.on('unsubscriptionConfirmed', action);
+  }
+  userJoinsRoom(socket) {
+    const action = data => {
+      this.addMessage(data);
+      this.addUser(data);
+    };
+    socket.on('userJoinsRoom', action);
+  }
+  userLeavesRoom(socket) {
+    const action = data => {
+      this.addMessage(data);
+      this.removeUser(data);
+    };
+    socket.on('userLeavesRoom', action);
+  }
+  newMessage(socket) {
+    const action = data => {
+      this.addMessage(data);
+      const area = this.select(`#room_messages_${data.room}`);
+      area.scrollTop = area.scrollHeight;
+    };
+    socket.on('newMessage', action);
+  }
+  usersInRoom(socket) {
+    const action = data => data.users.forEach(user => this.addUser(user));
+    socket.on('usersInRoom', action);
+  }
+  userNicknameUpdated(socket) {
+    const action = data => {
+      this.addMessage({
+        room: data.room, username: 'ServerBot', msg: `----- ${data.oldUsername} is now ${data.newUsername} -----`,
+      });
+      this.updateNickname(data);
+    };
+    socket.on('userNicknameUpdated', action);
+  }
+  start() {
+    return this;
+  }
+  onClick(element, action) {
+    element.addEventListener('click', action);
+  }
+  generateElement(html, area) {
+    const div = document.createElement('div');
+    div.innerHTML = `<div class="generateElement">${html}</div>`;
+    const elements = this.selectAll('.generateElement > *', div);
+    if (!area) return elements;
+    elements.forEach(element => area.append(element));
+    return elements;
+  }
+  showModal(modal) {
+    modal.style.display = "block";
+    this.onClick(this.select('.close', modal), () => {
+      modal.style.display = "none";
+    });
+    this.onClick(window, event => {
+      if (event.target === modal) {
+        modal.style.display = "none";
+      }
+    });
+  }
+  hideModal(modal) {
+    modal.style.display = "none";
+  }
+  select(selector, element) {
+    return (element || document).querySelector(selector);
+  }
+  selectAll(selector, element) {
+    return [...(element || document).querySelectorAll(selector)];
+  }
+  genId(id) {
+    return `id-${id.replace(/\\d+/, '')}`;
+  }
+  getTemplate(path) {
+    if (Object.keys(this.templates).indexOf(path) !== -1) {
+      return Promise.resolve(this.templates[path]);
     }
-
-    // Add room tab
-    var addRoomTab = function(room) {
-        getTemplate('js/templates/room_tab.handlebars', function(template) {
-            $('#rooms_tabs').append(template({'room':room}));
-        });
-    };
-
-    // Remove room tab
-    var removeRoomTab = function(room) {
-        var tab_id = "#"+room+"_tab";
-        $(tab_id).remove();
-    };
-
-    // Add room
-    var addRoom = function(room) {
-        getTemplate('js/templates/room.handlebars', function(template) {
-            $('#rooms').append(template({'room':room}));
-        
-            // Toogle to created room
-            var newroomtab = '[href="#'+room+'"]';
-            $(newroomtab).click();
-
-            // Get users connected to room
-            socket.emit('getUsersInRoom', {'room':room});
-        });
-    };
-    
-    // Remove room
-    var removeRoom = function(room) {
-        var room_id = "#"+room;
-        $(room_id).remove();
-    };
-
-    // Add message to room
-    var addMessage = function(msg) {
-        getTemplate('js/templates/message.handlebars', function(template) {
-            var room_messages = '#room_messages_'+msg.room;
-            if ($(room_messages).length > 0) {
-              $(room_messages).append(template(msg));
-            } else {
-              var roomInterval = setInterval(function() {
-                if ($(room_messages).length > 0) {
-                  $(room_messages).append(template(msg));
-                  clearInterval(roomInterval);
-                }
-              }, 100);
-            }
-        });
-    };
-
-    // Add user to connected users list
-    var addUser = function(user) {
-        getTemplate('js/templates/user.handlebars', function(template) {
-            var room_users = '#room_users_'+user.room;
-            // Add only if it doesn't exist in the room
-            var user_badge = '#'+user.room+' #'+user.id;
-            if (!($(user_badge).length)) {
-                $(room_users).append(template(user));
-            }
-        });
-    }
-
-    // Remove user from connected users list
-    var removeUser = function(user) {
-        var user_badge = '#'+user.room+' #'+user.id;
-        $(user_badge).remove();
-    };
-
-    // Check if room exists
-    var roomExists = function(room) {
-        var room_selector = '#'+room;
-        if ($(room_selector).length) {
-            return true;
-        } else {
-            return false;
-        }
-    };
-
-    // Get current room
-    var getCurrentRoom = function() {
-        return $('li[id$="_tab"][class="active"]').text();
-    };
-
-    // Get message text from input field
-    var getMessageText = function() {
-        var text = $('#message_text').val();
-        $('#message_text').val("");
-        return text;
-    };
-
-    // Get room name from input field
-    var getRoomName = function() {
-        var name = $('#room_name').val().trim();
-        $('#room_name').val("");
-        return name;
-    };
-
-    // Get nickname from input field
-    var getNickname = function() {
-        var nickname = $('#nickname').val();
-        $('#nickname').val("");
-        return nickname;
-    };
-
-    // Update nickname in badges
-    var updateNickname = function(data) {
-        var badges = '#'+data.room+' #'+data.id;
-        $(badges).text(data.newUsername);
-    };
-
-    // ***************************************************************************
-    // Events
-    // ***************************************************************************
-
-    // Send new message
-    $('#b_send_message').click(function(eventObject) {
-        eventObject.preventDefault();
-        if ($('#message_text').val() != "") {
-            socket.emit('newMessage', {'room':getCurrentRoom(), 'msg':getMessageText()});
-        }
+    return fetch(path)
+    .then(res => res.text())
+    .then(source => {
+      this.templates[path] = Handlebars.compile(source);
+      return this.templates[path];
     });
-
-    // Join new room
-    $('#b_join_room').click(function(eventObject) {
-        var roomName = getRoomName();
-
-        if (roomName) {
-            eventObject.preventDefault();
-            socket.emit('subscribe', {'rooms':[roomName]}); 
-
-        // Added error class if empty room name
-        } else {
-            $('#room_name').addClass('error');
+  }
+  addMessage(msg) {
+    this.getTemplate('js/templates/message.handlebars')
+    .then(template => {
+      const area = this.select(`#room_messages_${msg.room}`);
+      const html = template(msg);
+      if (area) {
+        this.generateElement(html, area);
+        return;
+      }
+      const roomInterval = setInterval(() => {
+        const area = this.select(`#room_messages_${msg.room}`);
+        if (area) {
+          this.generateElement(html, area);
+          clearInterval(roomInterval);
         }
+      }, 220);
     });
-
-    // Leave current room
-    $('#b_leave_room').click(function(eventObject) {
-        eventObject.preventDefault();
-        var currentRoom = getCurrentRoom();
-        if (currentRoom != 'MainRoom') {
-            socket.emit('unsubscribe', {'rooms':[getCurrentRoom()]}); 
-
-            // Toogle to MainRoom
-            $('[href="#MainRoom"]').click();
-        } else {
-            console.log('Cannot leave MainRoom, sorry');
-        }
+  }
+  addRoomTab(room) {
+    this.getTemplate('js/templates/room_tab.handlebars')
+    .then(template => {
+      this.generateElement(template({ room }), this.select('#rooms_tabs'));
+      this.onClick(this.select(`[data-href="#${this.genId(room)}"]`), () => this.setRoom(room));
     });
-
-    // Remove error style to hide modal
-    $('#modal_joinroom').on('hidden.bs.modal', function (e) {
-        if ($('#room_name').hasClass('error')) {
-            $('#room_name').removeClass('error');
-        }
+  }
+  removeRoomTab(room) {
+    this.select(`#${this.genId(room)}_tab`).remove();
+  }
+  addRoom(room) {
+    this.getTemplate('js/templates/room.handlebars')
+    .then(template => {
+      this.generateElement(template({ room }), this.select('#rooms'));
     });
-
-    // Set nickname
-    $('#b_set_nickname').click(function(eventObject) {
-        eventObject.preventDefault();
-        socket.emit('setNickname', {'username':getNickname()});
-
-        // Close modal if opened
-        $('#modal_setnick').modal('hide');
+  }
+  setRoom(room) {
+    this.selectAll('.active').forEach(element => element.classList.remove('active'));
+    this.select(`#${this.genId(room)}_tab`).classList.add('active');
+    this.select(`#${this.genId(room)}`).classList.add('active');
+  }
+  removeRoom(room) {
+    this.select(`#${this.genId(room)}`).remove();
+  }
+  roomExists(room) {
+    return this.select(`#${this.genId(room)}_tab`);
+  }
+  addUser(user) {
+    this.getTemplate('js/templates/user.handlebars')
+    .then(template => {
+      const area = this.select(`#${this.genId(user.room)}`);
+      if (!area) return;
+      if (this.select(`#${this.genId(user.id)}`, area)) return;
+      this.generateElement(template({
+        username: user.username,
+        id: this.genId(user.id),
+      }), this.select(`#room_users_${user.room}`, area));
     });
-
-})();
-
+  }
+  removeUser(user) {
+    this.select(`#${this.genId(user.room)} #${this.genId(user.id)}`).remove();
+  }
+  getCurrentRoom() {
+    return this.select('li[id$="_tab"][class="active"]').textContent;
+  }
+  getMessageText() {
+    const text = this.select('#message_text').value;
+    this.select('#message_text').value = '';
+    return text;
+  }
+  getRoomName() {
+    const name = this.select('#room_name').value.trim();
+    this.select('#room_name').value = '';
+    return name;
+  }
+  getNickname() {
+    const nickname = this.select('#nickname').value;
+    this.select('#nickname').value = '';
+    return nickname;
+  }
+  updateNickname(data) {
+    this.select(`#${this.genId(data.room)} #${this.genId(data.id)}`).textContent = data.newUsername;
+  }
+}
+if (!window.c) {
+  window.c = (async () => new Chat().start())();
+}

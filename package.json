@@ -5,8 +5,8 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-      "start": "node chatServer",
-      "inspect": "node --inspect chatServer"
+    "start": "node chatServer",
+    "inspect": "node --inspect chatServer"
   },
   "dependencies": {
     "express": "~3.3.8",
@@ -15,5 +15,10 @@
     "socket.io-redis": "~0.1.4",
     "underscore": "",
     "validator": ""
+  },
+  "devDependencies": {
+    "eslint": "^5.10.0",
+    "eslint-config-airbnb-base": "^13.1.0",
+    "eslint-plugin-import": "^2.14.0"
   }
 }
