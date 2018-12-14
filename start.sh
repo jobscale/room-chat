@@ -4,6 +4,5 @@ export PORT=3033
 export DB_HOST=db
 
 cd /var/site/projects/node/chat
-[[ -s "/var/site/.nvm/nvm.sh" ]] && . "/var/site/.nvm/nvm.sh"
-[[ -s "/var/site/.nvm/nvm.sh" ]] && nvm use v8.14.0
+PATH="$PATH:/var/site/.nvm/versions/node/v8.14.0/bin"
 npm run inspect
