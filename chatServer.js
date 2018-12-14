@@ -163,7 +163,7 @@ class ChatServer extends App {
       this.db.hgetall(socket.id, (err, obj) => {
         if (err) return this.emitter.emit('newEvent', 'error', err);
         this.emitter.emit('newEvent', 'userDisconnected', { socket: socket.id, username: obj.username });
-        this.rooms(socket).forEach(room => {
+        this.cacheRooms(socket.adapter).forEach(room => {
           if (!room) return;
           this.io.to(room).emit('userLeavesRoom', {
             room,
@@ -183,9 +183,9 @@ class ChatServer extends App {
   runTest() {
     setInterval(() => this.sendBroadcast('Testing rooms'), 60000);
   }
-  cacheRooms() {
+  cacheRooms(data) {
     const list = [];
-    const rooms = this.io.nsps['/'].adapter.rooms || {};
+    const rooms = data.rooms || {};
     Object.keys(rooms).forEach(key => {
       if (key === Object.keys(rooms[key])[0]) return;
       list.push(key);
@@ -193,7 +193,7 @@ class ChatServer extends App {
     return list;
   }
   sendBroadcast(text) {
-    this.cacheRooms().forEach(room => {
+    this.cacheRooms(this.io.nsps['/'].adapter).forEach(room => {
       this.io.to(room).emit('newMessage', {
         room, username: 'ServerBot', msg: text, date: new Date(),
       });
