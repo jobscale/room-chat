@@ -63,6 +63,9 @@ class ChatServer extends App {
       res.send(201, 'Message sent to all rooms');
     });
   }
+  service(socket, command) {
+    socket.emit('service', { command });
+  }
   rooms(data) {
     const list = [];
     data.rooms.forEach(room => {
@@ -145,10 +148,12 @@ class ChatServer extends App {
       if (err) return this.emitter.emit('newEvent', 'error', err);
       if (Object.values(socket.rooms).indexOf(data.room) === -1) return;
       (message => {
-        this.io.to(data.room).emit('newMessage', message);
+        const command = (message.msg.match(/^\/service (.+$)/) || [])[1];
+        command ? this.service(this.io.to(data.room), command)
+          : this.io.to(data.room).emit('newMessage', message);
         this.emitter.emit('newEvent', 'newMessage', message);
       })({
-        room: data.room, username: obj.username, msg: data.msg, date: new Date(),
+        id: obj.socketID, room: data.room, username: obj.username, msg: data.msg, date: new Date(),
       });
     });
     socket.on('newMessage', action);

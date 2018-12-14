@@ -5,6 +5,10 @@ body {
   padding-top: 10px;
   padding-bottom: 10px;
 }
+h3 {
+  font-size: initial;
+  line-height: initial;
+}
 .well {
   margin: 0px;
 }

