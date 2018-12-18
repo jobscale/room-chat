@@ -3,7 +3,9 @@ const http = require('http');
 const createSocket = require('socket.io');
 const redis = require('socket.io-redis');
 const cache = require('redis');
+const cluster = require('cluster');
 const { EventEmitter } = require('events');
+const os = require('os');
 
 class App {
   constructor() {
@@ -18,7 +20,20 @@ class ChatServer extends App {
     this.port = env.PORT || 3000;
     this.dbPort = env.DB_PORT || 6379;
     this.dbHost = env.DB_HOST || '127.0.0.1';
-    this.initialize();
+    env.CLUSTERING === 'true' ? this.clustering() : this.initialize();
+  }
+  clustering() {
+    const fork = () => {
+      os.cpus().forEach(() => {
+        const worker = cluster.fork();
+        console.log('CLUSTER: Worker %d started', worker.id);
+      });
+      cluster.on('exit', () => {
+        const worker = cluster.fork();
+        console.log('CLUSTER: Worker %d started', worker.id);
+      });
+    };
+    cluster.isMaster ? fork() : this.initialize();
   }
   initialize() {
     this.emitter = new EventEmitter();
@@ -36,9 +51,9 @@ class ChatServer extends App {
     this.initRoute();
   }
   initEvent() {
-    this.emitter.on('newEvent', (event, data) => {
-      this.logger.info('%s: %s', event, JSON.stringify(data));
-    });
+    this.emitter.on('newEvent',
+      (event, data) => this.logger.info('%s: %s', event, JSON.stringify(data)),
+    );
     const action = socket => {
       socket.emit('connected', 'Welcome to the chat server');
       this.emitter.emit('newEvent', 'userConnected', { socket: socket.id });
@@ -162,7 +177,9 @@ class ChatServer extends App {
     const action = () => {
       this.db.hgetall(socket.id, (err, obj) => {
         if (err) return this.emitter.emit('newEvent', 'error', err);
-        this.emitter.emit('newEvent', 'userDisconnected', { socket: socket.id, username: obj.username });
+        this.emitter.emit('newEvent', 'userDisconnected', {
+          socket: socket.id, username: obj.username,
+        });
         this.cacheRooms(socket.adapter).forEach(room => {
           if (!room) return;
           this.io.to(room).emit('userLeavesRoom', {
@@ -193,12 +210,14 @@ class ChatServer extends App {
     return list;
   }
   sendBroadcast(text) {
-    this.cacheRooms(this.io.nsps['/'].adapter).forEach(room => {
-      this.io.to(room).emit('newMessage', {
+    this.cacheRooms(this.io.nsps['/'].adapter).forEach(
+      room => this.io.to(room).emit('newMessage', {
         room, username: 'ServerBot', msg: text, date: new Date(),
-      });
+      }),
+    );
+    this.emitter.emit('newEvent', 'newBroadcastMessage', {
+      msg: text,
     });
-    this.emitter.emit('newEvent', 'newBroadcastMessage', { msg: text });
   }
 }
 (async () => new ChatServer().start())();
