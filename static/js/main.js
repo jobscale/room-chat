@@ -13,8 +13,8 @@ class Chat extends App {
     this.logger.info('begin');
   }
   initialize() {
-    this.initEvent();
     this.initAction();
+    this.initEvent();
   }
   initEvent() {
     const action = socket => {
@@ -55,7 +55,7 @@ class Chat extends App {
       const currentRoom = this.getCurrentRoom();
       if (currentRoom === this.mainRoom) return;
       this.socket.emit('unsubscribe', { rooms: [this.getCurrentRoom()] });
-      this.select('[data-href="#id-MainRoom"]').click();
+      this.select(`[data-href="#id-${this.mainRoom}"]`).click();
     });
     this.select('#modal_joinroom').addEventListener('hidden.bs.modal', event => {
       this.logger({ event });
@@ -181,9 +181,9 @@ class Chat extends App {
   }
   showModal(modal) {
     modal.style.display = "block";
-    this.onClick(this.select('.close', modal), () => {
-      modal.style.display = "none";
-    });
+    this.onClick(this.select('.close', modal),
+      () => modal.style.display = "none",
+    );
     this.onClick(window, event => {
       if (event.target === modal) {
         modal.style.display = "none";
