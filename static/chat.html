@@ -1,15 +1,13 @@
 <script src="/socket.io/socket.io.js"></script>
 <script>
-    var socket = io.connect(window.location.host);
-    socket.on('connected', function (data) {
+    const socket = io.connect(window.location.host);
+    socket.on('connected', data => {
         console.log(data);
         socket.emit('subscribe', {'username':'tegioz', 'rooms':['pruebas']});
         socket.emit('newMessage', {'room':'pruebas', 'msg':'Holaaaaaa'});
     });
-    socket.on('newMessage', function (data) {
-        console.log("newMessage: %s", JSON.stringify(data));
-    });
-    setInterval(function() {
+    socket.on('newMessage', data => console.log("newMessage: %s", JSON.stringify(data)));
+    setInterval(() => {
         socket.emit('unsubscribe', {'rooms':['pruebas']});
         socket.disconnect();
     }, 600000);
