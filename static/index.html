@@ -1,135 +1,119 @@
 <!DOCTYPE html>
 <html>
-    <head>
-        <meta charset="utf-8">
-        <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
-        <title></title>
-        <meta name="description" content="">
-        <meta name="viewport" content="width=device-width">
-
-        <link rel="stylesheet" href="css/bootstrap.min.css">
-        <!--<link rel="stylesheet" href="css/bootstrap-responsive.min.css">-->
-        <link rel="stylesheet" href="css/main.css">
-    </head>
-    <body style="margin-bottom: 0; padding-bottom: 0;">
-        <!-- Content -->
-        <div class="row-fluid">
-            <!-- Header -->
-            <div class="row-fluid">
-                <div class="span12">
-                    <div class="navbar navbar-inverse navbar-fixed-top">
-                        <div class="navbar-inner">
-                                <a class="brand" href="/">&nbsp;&nbsp;&nbsp;<i class="icon-comment icon-white"></i>&nbsp;Chat&nbsp;</a>
-                                <ul class="nav pull-right">
-                                    <li class="divider-vertical"></li>
-                                    <li class="">
-                                        <a href="http://github.com/tegioz/chat"><i class="icon-star icon-white"></i>&nbsp;Fork me on Github&nbsp;</a>
-                                    </li>
-                                </ul>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- End Header -->
-            <!-- Rooms -->
-            <div class="row-fluid">
-                <div class="span12 well" style="background-color:white; border:0">
-                    <!-- Tabs -->
-                    <div class="row-fluid">
-                        <div class="span12">
-                            <ul id="rooms_tabs" class="nav nav-tabs">
-                                <li id="drop-down" class="dropdown">
-                                    <span class="link"><i class="icon-th"></i>&nbsp;Options&nbsp;<b class="caret"></b></span>
-                                    <ul class="dropdown-menu">
-                                        <li><span id="open_joinroom"><i class="icon-plus"></i>&nbsp;Join room</span></li>
-                                        <li><span id="b_leave_room" href="#"><i class="icon-minus"></i>&nbsp;Leave current room</span></li>
-                                        <li class="divider"></li>
-                                        <li><span id="open_setnick"><i class="icon-user"></i>&nbsp;Set nickname</span></li>
-                                    </ul>
-                                </li>
-                            </ul>
-                        </div>
-                    </div>
-                    <!-- End Tabs -->
-                    <!-- Rooms -->
-                    <div id="rooms" class="tab-content">
-                    </div>
-                    <!-- End Rooms -->
-                </div>
-            </div>
-            <!-- End Rooms -->
-            <!-- New message input -->
-            <div class="row-fluid">
-                <div class="span12"> 
-                    <div class="navbar">
-                        <div class="navbar-inner">
-                            <form class="navbar-form">
-                                <label for="message_text"></label>
-                                <input id="message_text" type="text" class="span9">
-                                <button id="b_send_message" class="btn btn-primary">Send</button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <!-- End New message -->
-            <!-- Info -->
-            <div class="row-fluid">
-                <div class="hero-unit" style="margin:20px; padding:60px;">
-                    <p style="margin-bottom: 0"><i class="icon-tasks"></i><strong> Server side:</strong> Node.js, Socket.io, Express, Redis</p>
-                    <p><i class="icon-picture"></i><strong> Client side:</strong> HTML5 Boilerplate, Bootstrap and Handlebars</p>
-                    <br>
-                    <p><a href="http://github.com/tegioz/chat" class="btn btn-success btn-large pull-right">Fork me on Github</a></p>
-                </div>
-            </div>
-            <!-- End Info -->
-            <!-- Footer -->
-            <div class="row-fluid">
-                <div class="span12"> 
-                    <p class="pull-right"><a href="mailto:sergio.castano.arteaga@gmail.com"><small>Sergio Castaño Arteaga</small></a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
-                </div>
-            </div>
-            <!--<div style="position:absolute; background-color:black; width:100%; height:10px; bottom:0px;"></div>-->
-            <!-- End Footer -->
+<head>
+  <meta charset="utf-8">
+  <meta http-equiv="X-UA-Compatible" content="IE=edge,chrome=1">
+  <title></title>
+  <meta name="description" content="">
+  <meta name="viewport" content="width=device-width">
+  <link rel="stylesheet" href="css/bootstrap.min.css">
+  <link rel="stylesheet" href="css/main.css">
+</head>
+<body>
+<div class="row-fluid">
+  <div class="row-fluid">
+    <div class="span12">
+      <div class="navbar navbar-inverse navbar-fixed-top">
+        <div class="navbar-inner">
+          <a class="brand" href="/">&nbsp;&nbsp;&nbsp;<i class="icon-comment icon-white"></i>&nbsp;Chat&nbsp;</a>
+          <ul class="nav pull-right">
+            <li class="divider-vertical"></li>
+            <li class="">
+              <a href="http://github.com/tegioz/chat"><i class="icon-star icon-white"></i>&nbsp;Fork me on Github&nbsp;</a>
+            </li>
+          </ul>
         </div>
-        <!-- End Content -->
-        <!-- Join room modal -->
-        <div id="modal_joinroom" class="modal">
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <div class="modal-header">
-                    <h3>Join room</h3>
-                </div>
-                <div class="modal-body">
-                    <input id="room_name" type="text" class="input-xlarge" placeholder="Room name">
-                    <p><small>Room will be created if it doesn't exist</small></p>
-                </div>
-                <div class="modal-footer">
-                    <a id="b_join_room" href="#" class="btn btn-primary">Join now</a>
-                </div>
-            </div>
+      </div>
+    </div>
+  </div>
+  <div class="row-fluid">
+    <div class="span12 well" style="background-color:white; border:0">
+      <div class="row-fluid">
+        <div class="span12">
+          <ul id="rooms_tabs" class="nav nav-tabs">
+            <li id="drop-down" class="dropdown">
+              <span class="link"><i class="icon-th"></i>&nbsp;Options&nbsp;<b class="caret"></b></span>
+              <ul class="dropdown-menu">
+                <li><span id="open_joinroom"><i class="icon-plus"></i>&nbsp;Join room</span></li>
+                <li><span id="b_leave_room" href="#"><i class="icon-minus"></i>&nbsp;Leave current room</span></li>
+                <li class="divider"></li>
+                <li><span id="open_setnick"><i class="icon-user"></i>&nbsp;Set nickname</span></li>
+              </ul>
+            </li>
+          </ul>
         </div>
-        <!-- End Join room modal -->
-        <!-- Set nick modal -->
-        <div id="modal_setnick" class="modal">
-            <!-- Modal content -->
-            <div class="modal-content">
-                <span class="close">&times;</span>
-                <div class="modal-header">
-                    <h3>Set nickname</h3>
-                </div>
-                <div class="modal-body">
-                    <input id="nickname" type="text" class="input-xlarge" placeholder="Type your nickname here">
-                    <p><small>Pick up something more cool than anonymous :)</small></p>
-                </div>
-                <div class="modal-footer">
-                    <a id="b_set_nickname" href="#" class="btn btn-primary">Set nickname</a>
-                </div>
-            </div>
+      </div>
+      <div id="rooms" class="tab-content">
+      </div>
+    </div>
+  </div>
+  <div class="row-fluid">
+    <div class="span12">
+      <div class="navbar">
+        <div class="navbar-inner">
+          <form class="navbar-form">
+            <label for="message_text">
+              <input id="message_text" type="text" class="span9">
+              <button id="b_send_message" class="btn btn-primary">Send</button>
+            </label>
+          </form>
         </div>
-        <!-- End Set nick modal -->
-        <script src="js/vendor/handlebars-1.0.rc.1.js"></script>
-        <script src="/socket.io/socket.io.js"></script>
-        <script src="js/main.js"></script>
-    </body>
+      </div>
+    </div>
+  </div>
+  <div class="row-fluid">
+    <div class="hero-unit" style="margin:20px; padding:60px;">
+      <p style="margin-bottom: 0"><i class="icon-tasks"></i><strong> Server side:</strong> Node.js, Socket.io, Express,
+        Redis</p>
+      <p><i class="icon-picture"></i><strong> Client side:</strong> HTML5 Boilerplate, Bootstrap and Handlebars</p>
+      <br>
+      <p><a href="http://github.com/tegioz/chat" class="btn btn-success btn-large pull-right">Fork me on Github</a></p>
+    </div>
+  </div>
+  <div class="row-fluid">
+    <div class="span12">
+      <p class="pull-right"><a href="mailto:sergio.castano.arteaga@gmail.com">
+        <small>Sergio Castaño Arteaga</small>
+      </a>&nbsp;&nbsp;&nbsp;&nbsp;&nbsp;
+    </div>
+  </div>
+</div>
+<div id="modal_joinroom" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <div class="modal-header">
+      <h3>Join room</h3>
+    </div>
+    <div class="modal-body">
+      <input id="room_name" type="text" class="input-xlarge" placeholder="Room name">
+      <p>
+        <small>Room will be created if it doesn't exist</small>
+      </p>
+    </div>
+    <div class="modal-footer">
+      <a id="b_join_room" href="#" class="btn btn-primary">Join now</a>
+    </div>
+  </div>
+</div>
+<div id="modal_setnick" class="modal">
+  <div class="modal-content">
+    <span class="close">&times;</span>
+    <div class="modal-header">
+      <h3>Set nickname</h3>
+    </div>
+    <div class="modal-body">
+      <input id="nickname" type="text" class="input-xlarge" placeholder="Type your nickname here">
+      <p>
+        <small>Pick up something more cool than anonymous :)</small>
+      </p>
+    </div>
+    <div class="modal-footer">
+      <a id="b_set_nickname" href="#" class="btn btn-primary">Set nickname</a>
+    </div>
+  </div>
+</div>
+<script src="js/vendor/handlebars-1.0.rc.1.js"></script>
+<script src="/socket.io/socket.io.js"></script>
+<script src="js/main.js"></script>
+</body>
 </html>

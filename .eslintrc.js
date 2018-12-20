@@ -10,5 +10,7 @@ module.exports = {
     'import/no-unresolved': 'off',
     'no-await-in-loop': 'off',
     'lines-between-class-members': 'off',
+    'no-unused-expressions': 'off',
+    'no-param-reassign': 'off',
   },
 };

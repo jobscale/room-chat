@@ -1,24 +1,33 @@
 {
-  "name": "simplechat",
-  "author": "Sergio Castaño Arteaga - sergio.castano.arteaga@gmail.com",
-  "description": "SimpleChat",
-  "version": "0.0.1",
-  "private": true,
+  "name": "chat",
+  "version": "0.1.0",
+  "description": "just chat server.",
+  "main": "index.js",
   "scripts": {
-    "start": "node chatServer",
-    "inspect": "node --inspect chatServer"
+    "start": "node .",
+    "lint": "eslint .",
+    "inspect": "node --inspect ."
   },
   "dependencies": {
-    "express": "~3.3.8",
-    "redis": "",
-    "socket.io": "~1.3.7",
-    "socket.io-redis": "~0.1.4",
-    "underscore": "",
-    "validator": ""
+    "express": "^3.3.8",
+    "redis": "^2.8.0",
+    "socket.io": "^1.3.7",
+    "socket.io-redis": "^0.1.4"
   },
   "devDependencies": {
     "eslint": "^5.10.0",
     "eslint-config-airbnb-base": "^13.1.0",
     "eslint-plugin-import": "^2.14.0"
-  }
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/jobscale/chat-1.git"
+  },
+  "keywords": [],
+  "author": "jobscale<jobscale@jsx.jp>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/jobscale/chat-1/issues"
+  },
+  "homepage": "https://github.com/jobscale/chat-1#readme"
 }

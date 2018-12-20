@@ -14,8 +14,7 @@ class App {
   promise() {
     const promise = {};
     promise.instance = new Promise((...args) => {
-      promise.resolve = args[0];
-      promise.reject = args[1];
+      [promise.resolve, promise.reject] = args;
     });
     return promise;
   }
@@ -23,22 +22,28 @@ class App {
 class ChatServer extends App {
   constructor() {
     super();
-    const { DEBUG, PORT, DB_HOST, DB_PORT, CLUSTERING } = process.env;
-    this.debug = DEBUG;
-    this.port = PORT || 3000;
-    this.dbHost = DB_HOST || '127.0.0.1';
-    this.dbPort = DB_PORT || 6379;
+    const {
+      DEBUG, PORT, DB_HOST, DB_PORT, CLUSTERING,
+    } = process.env;
+    this.options = {
+      debug: DEBUG,
+      port: PORT || 3000,
+      db: {
+        host: DB_HOST || '127.0.0.1',
+        port: DB_PORT || 6379,
+      },
+    };
     CLUSTERING === 'true' ? this.clustering() : this.initialize();
   }
   clustering() {
     const fork = () => {
-      os.cpus().forEach(() => {
+      for (let num = os.cpus().length; num; num--) {
         const worker = cluster.fork();
-        console.log('CLUSTER: Worker %d started', worker.id);
-      });
+        this.logger.info('CLUSTER: Worker %d started', worker.id);
+      }
       cluster.on('exit', () => {
         const worker = cluster.fork();
-        console.log('CLUSTER: Worker %d started', worker.id);
+        this.logger.info('CLUSTER: Worker %d started', worker.id);
       });
     };
     cluster.isMaster ? fork() : this.initialize();
@@ -50,8 +55,7 @@ class ChatServer extends App {
   }
   initEvent() {
     this.emitter.on('newEvent',
-      (event, data) => this.logger.info('%s: %s', event, JSON.stringify(data)),
-    );
+      (event, data) => this.logger.info('%s: %s', event, JSON.stringify(data)));
     const action = socket => {
       socket.emit('connected', 'Welcome to the chat server');
       this.emitter.emit('newEvent', 'userConnected', { socket: socket.id });
@@ -67,14 +71,14 @@ class ChatServer extends App {
       this.disconnect(socket);
     };
     this.io = io.listen(this.server);
-    this.io.adapter(redis({ host: this.dbHost, port: this.dbPort }));
-    this.db = cache.createClient(this.dbPort, this.dbHost);
+    this.io.adapter(redis(this.options.db));
+    this.db = cache.createClient(this.options.db.port, this.options.db.host);
     this.io.sockets.on('connection', action);
   }
   initRoute() {
     this.route = express();
     this.server = http.createServer(this.route);
-    this.server.listen(this.port);
+    this.server.listen(this.options.port);
     this.route.configure(() => {
       this.route.use(express.bodyParser());
       this.route.use(express.static(`${__dirname}/static`));
@@ -85,6 +89,7 @@ class ChatServer extends App {
       this.sendBroadcast(req.body.msg);
       res.send(201, 'Message sent to all rooms');
     });
+    this.route.get('/favicon.ico', (req, res) => res.send(200, ''));
   }
   dbSet(...args) {
     this.db.hset(args, redis.print);
@@ -93,16 +98,14 @@ class ChatServer extends App {
     const promise = this.promise();
     const error = err => promise.reject({ err, args });
     this.db.hget(args,
-      (err, res) => err ? error(err) : promise.resolve(res),
-    );
+      (err, res) => err ? error(err) : promise.resolve(res));
     return promise.instance;
   }
   dbGetAll(id) {
     const promise = this.promise();
     const error = err => promise.reject({ err, id });
     this.db.hgetall(id,
-      (err, res) => err ? error(err) : promise.resolve(res),
-    );
+      (err, res) => err ? error(err) : promise.resolve(res));
     return promise.instance;
   }
   dbDel(id) {
@@ -160,12 +163,14 @@ class ChatServer extends App {
   getUsersInRoom(socket) {
     const action = data => {
       const usersInRoom = [];
-      const socketsInRoom = Object.keys(this.io.nsps['/'].adapter.rooms[data.room] || {});
+      const { adapter } = this.io.of('/');
+      const socketsInRoom = Object.keys(adapter.rooms[data.room] || {});
       socketsInRoom.forEach(
         id => this.dbGetAll(id)
         .then(obj => {
           usersInRoom.push({ room: data.room, username: obj.username, id: obj.socketID });
           if (usersInRoom.length !== socketsInRoom.length) return;
+          this.emitter.emit('newEvent', 'usersInRoom', { usersInRoom });
           socket.emit('usersInRoom', { users: usersInRoom });
         })
         .catch(e => this.fail(e)),
@@ -228,14 +233,14 @@ class ChatServer extends App {
     socket.on('disconnect', action);
   }
   start() {
-    if (this.debug) this.runTest();
+    if (this.options.debug) this.runTest();
   }
   runTest() {
     setInterval(() => this.sendBroadcast('Testing rooms'), 60000);
   }
-  cacheRooms(data) {
+  cacheRooms(adapter) {
     const list = [];
-    const rooms = data.rooms || {};
+    const rooms = adapter.rooms || {};
     Object.keys(rooms).forEach(key => {
       if (key === Object.keys(rooms[key])[0]) return;
       list.push(key);
@@ -243,7 +248,8 @@ class ChatServer extends App {
     return list;
   }
   sendBroadcast(text) {
-    this.cacheRooms(this.io.nsps['/'].adapter).forEach(
+    const { adapter } = this.io.of('/');
+    this.cacheRooms({ adapter }).forEach(
       room => this.io.to(room).emit('newMessage', {
         room, username: 'ServerBot', msg: text, date: new Date(),
       }),
@@ -253,4 +259,6 @@ class ChatServer extends App {
     });
   }
 }
-(async () => new ChatServer().start())();
+/* eslint-disable no-undef */
+(async () => new ChatServer().start())()
+.then(instance => chat = instance);
