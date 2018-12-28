@@ -4,6 +4,6 @@ export PORT=3033
 export DB_HOST=db
 #export CLUSTERING=true
 
-PATH="$PATH:/var/site/.nvm/versions/node/v10.14.1/bin"
+. /home/jobscale/.nvm/nvm.sh
 cd /var/site/projects/node/chat
 npm run inspect
