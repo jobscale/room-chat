@@ -29,4 +29,4 @@ waiter
 
 . /home/jobscale/.nvm/nvm.sh
 cd /var/site/projects/node/chat
-npm run inspect
+PORT=3033 npm run inspect
