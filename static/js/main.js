@@ -109,9 +109,13 @@ if (!window.chat) {
       socket.on('disconnect', action);
     }
     reconnect(socket) {
-      const action = () => this.addMessage({
-        room: this.mainRoom, username: 'bot', msg: '----- Reconnected to server -----',
-      });
+      const action = () => {
+        Array.from(document.querySelectorAll('#room_users_MainRoom [id]'))
+        .forEach(item => item.remove());
+        this.addMessage({
+          room: this.mainRoom, username: 'bot', msg: '----- Reconnected to server -----',
+        });
+      };
       socket.on('reconnect', action);
     }
     subscriptionConfirmed(socket) {
