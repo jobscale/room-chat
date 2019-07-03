@@ -1,6 +1,6 @@
-#!/bin/bash -eu
+#!/bin/bash -e
 
-. config
+. configure
 export DB_HOST=172.16.6.22
 export DB_PORT=6379
 
