@@ -1,8 +1,8 @@
 #!/bin/bash -eu
 
+. config
+export DB_HOST=172.16.6.22
 export DB_PORT=6379
-export DB_HOST=db
-#export CLUSTERING=true
 
 check() {
   nc $DB_HOST $DB_PORT -w 1 < /dev/null
@@ -27,6 +27,5 @@ waiter() {
 }
 waiter
 
-. /home/jobscale/.nvm/nvm.sh
-cd /var/site/projects/node/chat
-PORT=3033 npm run inspect
+. .nvm/nvm.sh
+npm start

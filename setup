@@ -1,0 +1,7 @@
+#!/bin/bash -e
+
+apt update
+apt install -y netcat
+. config
+. inst iNodejs
+

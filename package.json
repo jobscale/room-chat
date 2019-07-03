@@ -5,6 +5,10 @@
   "main": "index.js",
   "scripts": {
     "start": "node .",
+    "build": "docker build . -t local/chat:bionic",
+    "docker": "docker run --rm -d --network=host local/chat:bionic",
+    "save": "docker save local/chat:bionic > ../image.tar",
+    "import": "sudo microk8s.ctr -n k8s.io image import ../image.tar",
     "lint": "eslint .",
     "inspect": "node --inspect ."
   },
