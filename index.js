@@ -116,7 +116,7 @@ class ChatServer extends App {
   }
   rooms(data) {
     const list = [];
-    data.rooms.forEach(room => {
+    Object.keys(data.rooms).forEach(room => {
       if (room === data.id) return;
       const name = room.replace(' ', '');
       if (!name) return;
