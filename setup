@@ -2,6 +2,6 @@
 
 apt update
 apt install -y netcat
-. config
+. configure
 . inst iNodejs
 
