@@ -1,3 +1,14 @@
+#### { "license": "MIT" }
+
+```
+git clone https://github.com/jobscale/chat.git
+cd chat
+docker build . -t local/chat
+docker run -d --network=host redis
+docker run -d --network=host local/chat
+xdg-open http://127.0.0.1:3033
+```
+
 # SimpleChat
 
 Built with:
@@ -26,11 +37,11 @@ Fetch dependencies:
     npm install
 
 Launch Redis:
-    
+
     redis-server
 
 Launch chat server:
-    
+
     (don't forget to launch Redis before!)
 
     node chatServer.js
