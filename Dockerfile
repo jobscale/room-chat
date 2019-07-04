@@ -4,7 +4,7 @@ SHELL ["bash", "-c"]
 WORKDIR /root
 COPY . .
 
-RUN ./setup && npm i
+RUN ./setup && . .nvm/nvm.sh && npm i
 
 EXPOSE $PORT
 CMD ["./daemon"]
