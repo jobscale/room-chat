@@ -28,4 +28,4 @@ waiter() {
 waiter
 
 . .nvm/nvm.sh
-npm start
+npm run inspect
