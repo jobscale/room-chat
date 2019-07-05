@@ -1,4 +1,4 @@
-#!/bin/bash -e
+#!/bin/bash
 
 . configure
 export DB_HOST=172.16.6.22
@@ -22,6 +22,7 @@ waiter() {
     then
       break
     fi
+    wait $DB_PORT
     sleep 60
   done
 }
