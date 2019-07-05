@@ -4,8 +4,7 @@ SHELL ["bash", "-c"]
 WORKDIR /root
 COPY . .
 
-RUN apt install -y g++ make python netcat
-RUN . .nvm/nvm.sh && npm i && npm i socket.io@1.3.7
+RUN apt install -y netcat
 
 EXPOSE $PORT
 CMD ["./daemon"]

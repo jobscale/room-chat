@@ -27,5 +27,4 @@ waiter() {
 }
 waiter
 
-. .nvm/nvm.sh
 npm start
