@@ -1,7 +1,7 @@
 #!/bin/bash
 
 . configure
-export DB_HOST=172.16.6.22
+export DB_HOST=redis
 export DB_PORT=6379
 
 check() {
@@ -22,7 +22,7 @@ waiter() {
     then
       break
     fi
-    wait $DB_PORT
+    echo wait $DB_PORT
     sleep 60
   done
 }
