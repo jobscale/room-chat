@@ -1,1 +1,1 @@
-[[ "" == "$PORT" ]] && export PORT=3033
+[[ "" == "$PORT" ]] && export PORT=3000

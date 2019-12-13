@@ -1,4 +1,0 @@
-#!/bin/bash -eu
-
-. .nvm/nvm.sh
-./start.sh
