@@ -5,5 +5,5 @@ RUN apt-get update && apt-get install -y netcat
 COPY . .
 RUN npm i --production
 RUN rm -fr /var/lib/apt/lists/*
-EXPOSE $PORT
+EXPOSE 3000
 CMD ["./start.sh"]
