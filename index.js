@@ -78,7 +78,7 @@ class ChatServer extends App {
     this.server.listen(this.options.port);
     this.route.configure(() => {
       this.route.use(express.bodyParser());
-      this.route.use(express.static(`${__dirname}/static`));
+      this.route.use(express.static(`${__dirname}/docs`));
     });
     const requireAuthentication = (req, res, next) => next();
     this.route.get('/', (req, res) => res.send(200, 'Welcome to chat server'));
