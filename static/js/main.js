@@ -1,18 +1,13 @@
-/* global document window fetch io Handlebars */
-if (!window.chat) {
-  class App {
+/* global document window io Handlebars */
+window.addEventListener('load', () => {
+  const logger = console;
+  class Chat {
     constructor() {
-      this.logger = console;
-    }
-  }
-  class Chat extends App {
-    constructor() {
-      super();
       this.debug = false;
       this.mainRoom = 'MainRoom';
       this.templates = {};
       this.initialize();
-      this.logger.info('begin');
+      logger.info('begin');
     }
     initialize() {
       this.initAction();
@@ -60,7 +55,7 @@ if (!window.chat) {
         this.select(`[data-href="#id-${this.mainRoom}"]`).click();
       });
       this.select('#modal_joinroom').addEventListener('hidden.bs.modal', event => {
-        this.logger({ event });
+        logger({ event });
         event.preventDefault();
         if (!this.select('#room_name').classList.contains('error')) return;
         this.select('#room_name').classList.remove('error');
@@ -174,9 +169,6 @@ if (!window.chat) {
         this.updateNickname(data);
       };
       socket.on('userNicknameUpdated', action);
-    }
-    start() {
-      return this;
     }
     onClick(element, action) {
       element.addEventListener('click', action);
@@ -335,6 +327,7 @@ if (!window.chat) {
       area.textContent = user.newUsername;
     }
   }
-  window.chat = (async () => new Chat().start())();
-  window.chat.then(instance => window.chat = instance);
-}
+  window.main = {
+    chat: new Chat(),
+  };
+});

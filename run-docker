@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+set -eu
+
+{
+  redis() {
+    docker run --rm --name redis --network vnet -i redis
+  }
+  redis &
+  sleep 1
+
+  docker build . -t room-chat:local \
+  && docker run --rm --name room-chat --network vnet \
+  -p 3000:3000 -it room-chat:local
+}

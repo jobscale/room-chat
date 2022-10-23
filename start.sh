@@ -1,6 +1,6 @@
 #!/bin/bash
 
-. configure
+export PORT=${PORT:-3000}
 export DB_HOST=redis
 export DB_PORT=6379
 

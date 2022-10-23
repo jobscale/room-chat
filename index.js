@@ -6,11 +6,9 @@ const cache = require('redis');
 const cluster = require('cluster');
 const { EventEmitter } = require('events');
 const os = require('os');
+const { logger } = require('@jobscale/logger');
 
 class App {
-  constructor() {
-    this.logger = console;
-  }
   promise() {
     const promise = {};
     promise.instance = new Promise((...args) => {
@@ -39,26 +37,25 @@ class ChatServer extends App {
     const fork = () => {
       for (let num = os.cpus().length; num; num--) {
         const worker = cluster.fork();
-        this.logger.info('CLUSTER: Worker %d started', worker.id);
+        logger.info('CLUSTER: Worker %d started', worker.id);
       }
       cluster.on('exit', () => {
         const worker = cluster.fork();
-        this.logger.info('CLUSTER: Worker %d started', worker.id);
+        logger.info('CLUSTER: Worker %d started', worker.id);
       });
     };
     cluster.isMaster ? fork() : this.initialize();
   }
   initialize() {
     this.emitter = new EventEmitter();
+    this.emitter.on('newEvent', (event, data) => logger.info('newEvent', event, data));
     this.initRoute();
     this.initEvent();
   }
   initEvent() {
-    this.emitter.on('newEvent',
-      (event, data) => this.logger.info('%s: %s', event, JSON.stringify(data)));
     const action = socket => {
       socket.emit('connected', 'Welcome to the chat server');
-      this.emitter.emit('newEvent', 'userConnected', { socket: socket.id });
+      logger.info('userConnected', { socket: socket.id });
       this.dbSet(socket.id, 'connectionDate', new Date());
       this.dbSet(socket.id, 'socketID', socket.id);
       this.dbSet(socket.id, 'username', 'anonymous');
@@ -131,7 +128,7 @@ class ChatServer extends App {
     const action = data => this.dbGet(socket.id, 'username')
     .then(username => this.rooms(data).forEach(room => {
       socket.join(room);
-      this.emitter.emit('newEvent', 'userJoinsRoom', { socket: socket.id, username, room });
+      logger.info('userJoinsRoom', { socket: socket.id, username, room });
       socket.emit('subscriptionConfirmed', { room });
       this.io.to(room).emit('userJoinsRoom', {
         room, username, msg: '----- Joined the room -----', id: socket.id,
@@ -144,7 +141,7 @@ class ChatServer extends App {
     const action = data => this.dbGet(socket.id, 'username')
     .then(username => this.rooms(data).forEach(room => {
       socket.leave(room);
-      this.emitter.emit('newEvent', 'userLeavesRoom', { socket: socket.id, username, room });
+      logger.info('userLeavesRoom', { socket: socket.id, username, room });
       socket.emit('unsubscriptionConfirmed', { room });
       this.io.to(room).emit('userLeavesRoom', {
         room, username, msg: '----- Left the room -----', id: socket.id,
@@ -156,7 +153,7 @@ class ChatServer extends App {
   getRooms(socket) {
     const action = () => {
       socket.emit('roomsReceived', socket.rooms);
-      this.emitter.emit('newEvent', 'userGetsRooms', { socket: socket.id });
+      logger.info('userGetsRooms', { socket: socket.id });
     };
     socket.on('getRooms', action);
   }
@@ -164,17 +161,13 @@ class ChatServer extends App {
     const action = data => {
       const usersInRoom = [];
       const { adapter } = this.io.of('/');
-      const socketsInRoom = Object.keys(adapter.rooms[data.room] || {});
-      socketsInRoom.forEach(
-        id => this.dbGetAll(id)
-        .then(obj => {
-          usersInRoom.push({ room: data.room, username: obj.username, id: obj.socketID });
-          if (usersInRoom.length !== socketsInRoom.length) return;
-          this.emitter.emit('newEvent', 'usersInRoom', { usersInRoom });
-          socket.emit('usersInRoom', { users: usersInRoom });
-        })
-        .catch(e => this.fail(e)),
-      );
+      Object.keys(adapter.rooms[data.room] || {})
+      .forEach(async id => {
+        const obj = await this.dbGetAll(id);
+        usersInRoom.push({ room: data.room, username: obj.username, id: obj.socketID });
+      });
+      logger.info('usersInRoom', { usersInRoom });
+      socket.emit('usersInRoom', { users: usersInRoom });
     };
     socket.on('getUsersInRoom', action);
   }
@@ -182,12 +175,13 @@ class ChatServer extends App {
     const action = data => this.dbGet(socket.id, 'username')
     .then(username => {
       this.dbSet(socket.id, 'username', data.username);
-      this.emitter.emit('newEvent', 'userSetsNickname', {
+      logger.info('userSetsNickname', {
         socket: socket.id,
         oldUsername: username,
         newUsername: data.username,
       });
-      this.rooms(socket).forEach(room => this.io.to(room).emit('userNicknameUpdated', {
+      this.rooms(socket)
+      .forEach(room => this.io.to(room).emit('userNicknameUpdated', {
         room, oldUsername: username, newUsername: data.username, id: socket.id,
       }));
     })
@@ -197,15 +191,19 @@ class ChatServer extends App {
   newMessage(socket) {
     const action = data => this.dbGetAll(socket.id)
     .then(obj => {
-      if (Object.values(socket.rooms).indexOf(data.room) === -1) return;
-      (message => {
-        const command = (message.msg.match(/^\/service (.+$)/) || [])[1];
-        command ? this.service(this.io.to(data.room), command)
-          : this.io.to(data.room).emit('newMessage', message);
-        this.emitter.emit('newEvent', 'newMessage', message);
-      })({
-        id: obj.socketID, room: data.room, username: obj.username, msg: data.msg, date: new Date(),
-      });
+      const { room, msg } = data;
+      if (Object.values(socket.rooms).indexOf(room) === -1) return;
+      const message = {
+        id: obj.socketID, room, username: obj.username, msg, date: new Date(),
+      };
+      const command = (msg.match(/^\/service (.+$)/) || [])[1];
+      if (command) {
+        logger.info('command', message);
+        this.service(this.io.to(room), command);
+      } else {
+        logger.info('newMessage', message);
+        this.io.to(room).emit('newMessage', message);
+      }
     })
     .catch(e => this.fail(e));
     socket.on('newMessage', action);
@@ -214,7 +212,7 @@ class ChatServer extends App {
     const action = () => {
       this.dbGetAll(socket.id)
       .then(obj => {
-        this.emitter.emit('newEvent', 'userDisconnected', {
+        logger.info('userDisconnected', {
           socket: socket.id, username: obj.username,
         });
         this.cacheRooms(socket.adapter).forEach(room => {
@@ -249,12 +247,11 @@ class ChatServer extends App {
   }
   sendBroadcast(text) {
     const { adapter } = this.io.of('/');
-    this.cacheRooms({ adapter }).forEach(
-      room => this.io.to(room).emit('newMessage', {
-        room, username: 'ServerBot', msg: text, date: new Date(),
-      }),
-    );
-    this.emitter.emit('newEvent', 'newBroadcastMessage', {
+    this.cacheRooms({ adapter })
+    .forEach(room => this.io.to(room).emit('newMessage', {
+      room, username: 'ServerBot', msg: text, date: new Date(),
+    }));
+    logger.info('newBroadcastMessage', {
       msg: text,
     });
   }
