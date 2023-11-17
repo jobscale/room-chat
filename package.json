@@ -26,13 +26,13 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/jobscale/chat-1.git"
+    "url": "git+git@github.com:jobscale/chat-1.git"
   },
   "keywords": [],
   "author": "jobscale<jobscale@jsx.jp>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/jobscale/chat-1/issues"
+    "url": "git@github.com:jobscale/chat-1/issues"
   },
-  "homepage": "https://github.com/jobscale/chat-1#readme"
+  "homepage": "git@github.com:jobscale/chat-1#readme"
 }
