@@ -1,7 +1,7 @@
 #### { "license": "MIT" }
 
 ```
-git clone git@github.com:jobscale/chat.git
+git clone https://github.com/jobscale/chat.git
 cd chat
 docker build . -t local/chat
 docker run -d --network=host redis
